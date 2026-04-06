@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bestiário BR – Realidade Aumentada</title>
+
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --verde-mata:   #1a3a2a;
+      --verde-escuro: #0d1f18;
+      --verde-vivo:   #2d6a4f;
+      --verde-neon:   #52b788;
+      --ouro:         #c9a84c;
+      --ouro-claro:   #f0d080;
+      --creme:        #f2e8d5;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Crimson Pro', serif;
+      background: var(--verde-escuro);
+      color: var(--creme);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(45,106,79,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 28px 24px 20px;
+      text-align: center;
+      border-bottom: 1px solid rgba(201,168,76,0.25);
+    }
+
+    .header-ornament {
+      font-size: 0.75rem;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--ouro);
+      opacity: 0.7;
+      margin-bottom: 8px;
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+    }
+
+    h1 {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: clamp(1.6rem, 6vw, 2.4rem);
+      font-weight: 900;
+      color: var(--ouro-claro);
+      text-shadow: 0 0 30px rgba(201,168,76,0.4), 0 2px 4px rgba(0,0,0,0.8);
+      letter-spacing: 2px;
+      line-height: 1.15;
+    }
+
+    h1 span {
+      color: var(--verde-neon);
+      text-shadow: 0 0 20px rgba(82,183,136,0.5), 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .header-sub {
+      margin-top: 8px;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: rgba(242,232,213,0.55);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── VIEWER ── */
+    .viewer-wrap {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      background: radial-gradient(ellipse at center, #1a3a2a 0%, #0a1510 100%);
+      border-top: 1px solid rgba(201,168,76,0.2);
+      border-bottom: 1px solid rgba(201,168,76,0.2);
+    }
+
+    .viewer-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(45,106,79,0.04) 40px, rgba(45,106,79,0.04) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(45,106,79,0.04) 40px, rgba(45,106,79,0.04) 41px);
+      pointer-events: none;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      min-height: 55vh;
+      background: transparent;
+      --progress-bar-color: var(--ouro);
+    }
+
+    /* ── LOADING ── */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: radial-gradient(ellipse at center, #1a3a2a 0%, #0a1510 100%);
+      z-index: 5;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    .loading-overlay.hidden { opacity: 0; }
+
+    .eye {
+      width: 56px;
+      height: 56px;
+      border: 3px solid var(--ouro);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+
+    .eye::after {
+      content: '';
+      width: 22px;
+      height: 22px;
+      background: var(--verde-neon);
+      border-radius: 50%;
+      box-shadow: 0 0 14px var(--verde-neon);
+      animation: eye-move 3s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(201,168,76,0.3); }
+      50%       { box-shadow: 0 0 25px rgba(201,168,76,0.7); }
+    }
+
+    @keyframes eye-move {
+      0%, 100% { transform: translate(0,0); }
+      25%       { transform: translate(4px,-3px); }
+      75%       { transform: translate(-4px,3px); }
+    }
+
+    .loading-overlay p {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.72rem;
+      color: var(--ouro);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    /* ── BOTÃO AR ── */
+    .ar-btn {
+      background: linear-gradient(135deg, var(--verde-vivo), var(--verde-mata));
+      color: var(--ouro-claro);
+      border: 1px solid var(--ouro);
+      border-radius: 4px;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 14px 26px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(45,106,79,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .ar-btn:active {
+      box-shadow: 0 0 30px rgba(82,183,136,0.5);
+      color: white;
+    }
+
+    [slot="ar-button"] {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+    }
+
+    /* ── INSTRUÇÕES ── */
+    .instrucoes {
+      position: relative;
+      z-index: 1;
+      padding: 28px 24px 8px;
+    }
+
+    .section-title {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.68rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--ouro);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::before,
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(201,168,76,0.35));
+    }
+    .section-title::after {
+      background: linear-gradient(to left, transparent, rgba(201,168,76,0.35));
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 10px; }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 4px;
+    }
+
+    .step-num {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 1rem;
+      color: var(--ouro);
+      min-width: 24px;
+      text-align: center;
+      opacity: 0.75;
+      padding-top: 1px;
+    }
+
+    .step-text {
+      font-size: 1rem;
+      line-height: 1.5;
+      color: rgba(242,232,213,0.85);
+    }
+
+    .step-text strong { color: var(--verde-neon); font-style: italic; }
+
+    /* ── COMPATIBILIDADE ── */
+    .compat {
+      position: relative;
+      z-index: 1;
+      margin: 20px 24px 8px;
+      padding: 14px 20px;
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.02);
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .compat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: rgba(242,232,213,0.55);
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-ok   { background: var(--verde-neon); box-shadow: 0 0 6px var(--verde-neon); }
+    .dot-warn { background: var(--ouro); box-shadow: 0 0 6px var(--ouro); }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 20px 24px 32px;
+      font-style: italic;
+      font-size: 0.82rem;
+      color: rgba(242,232,213,0.28);
+      border-top: 1px solid rgba(201,168,76,0.1);
+      margin-top: 16px;
+    }
+
+    footer span { color: rgba(201,168,76,0.45); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-ornament">✦ &nbsp; Fauna &amp; Folclore Brasileiro &nbsp; ✦</div>
+    <h1>Bestiário<br/><span>BR</span></h1>
+    <p class="header-sub">Encontre a criatura. Traga-a ao mundo real.</p>
+  </header>
+
+  <div class="viewer-wrap">
+    <!-- ⚠️ Troque "modelo.glb" pelo nome real do seu arquivo -->
+    <model-viewer
+      id="viewer"
+      src="modelo.glb"
+      alt="Criatura do Bestiário BR em 3D"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      auto-rotate
+      auto-rotate-delay="1000"
+      rotation-per-second="20deg"
+      shadow-intensity="1.2"
+      environment-image="neutral"
+      exposure="0.85">
+
+      <button class="ar-btn" slot="ar-button">
+        <span>◈</span> Invocar em RA
+      </button>
+    </model-viewer>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="eye"></div>
+      <p>Invocando…</p>
+    </div>
+  </div>
+
+  <section class="instrucoes">
+    <div class="section-title">Como invocar</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">I</div>
+        <div class="step-text">Toque em <strong>"Invocar em RA"</strong> abaixo do modelo.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">II</div>
+        <div class="step-text">Aponte a câmera para uma <strong>superfície plana</strong> — chão, mesa ou qualquer piso.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">III</div>
+        <div class="step-text">Quando o ponto de ancoragem surgir, <strong>toque na tela</strong> para posicionar a criatura.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">IV</div>
+        <div class="step-text">Use dois dedos para <strong>girar ou redimensionar</strong>. Registre o encontro. 📸</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="compat">
+    <div class="compat-item"><div class="dot dot-ok"></div> iPhone / iPad</div>
+    <div class="compat-item"><div class="dot dot-ok"></div> Android</div>
+    <div class="compat-item"><div class="dot dot-warn"></div> Desktop (3D apenas)</div>
+  </div>
+
+  <footer>
+    <span>Bestiário BR</span> · Criaturas que habitam entre o mito e a mata
+  </footer>
+
+  <script>
+    const viewer  = document.getElementById('viewer');
+    const overlay = document.getElementById('loadingOverlay');
+
+    viewer.addEventListener('load', () => {
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.style.display = 'none', 900);
+    });
+
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.style.display = 'none', 900);
+    }, 8000);
+  </script>
+</body>
+</html>
