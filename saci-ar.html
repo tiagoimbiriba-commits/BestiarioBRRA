@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Bestiário BR – Saci AR</title>
+
+  <!-- MindAR + A-Frame -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600&display=swap" rel="stylesheet" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Crimson Pro', serif;
+      background: #0d1f18;
+      color: #f2e8d5;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* Tela inicial (instrução) */
+    #intro {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(ellipse at center, #1a3a2a 0%, #0a1510 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 40px 32px;
+      text-align: center;
+    }
+
+    #intro .logo {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 1.5rem;
+      color: #f0d080;
+      text-shadow: 0 0 20px rgba(201,168,76,0.5);
+      line-height: 1.2;
+    }
+
+    #intro .logo span { color: #52b788; }
+
+    #intro .criatura {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 1.1rem;
+      color: #c0392b;
+      letter-spacing: 3px;
+      text-shadow: 0 0 15px rgba(192,57,43,0.6);
+    }
+
+    #intro .instrucao {
+      font-size: 1.05rem;
+      font-style: italic;
+      color: rgba(242,232,213,0.7);
+      line-height: 1.6;
+      max-width: 300px;
+    }
+
+    .card-preview {
+      width: 140px;
+      border-radius: 8px;
+      border: 2px solid rgba(201,168,76,0.4);
+      box-shadow: 0 0 20px rgba(201,168,76,0.2);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    .start-btn {
+      background: linear-gradient(135deg, #7b1a0e, #3a0a06);
+      color: #f0d080;
+      border: 1px solid #c0392b;
+      border-radius: 4px;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 16px 36px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(192,57,43,0.4);
+    }
+
+    /* Cena AR */
+    #ar-scene {
+      display: none;
+      width: 100%;
+      height: 100dvh;
+    }
+
+    #ar-scene.active { display: block; }
+
+    /* HUD sobre a câmera */
+    #hud {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      padding: 16px 20px;
+      background: linear-gradient(to bottom, rgba(10,21,16,0.8), transparent);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #hud.active { display: flex; }
+
+    #hud .hud-title {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.8rem;
+      color: #f0d080;
+      letter-spacing: 2px;
+    }
+
+    #hud .hud-creature {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.75rem;
+      color: #c0392b;
+      letter-spacing: 2px;
+    }
+
+    .back-btn {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: none;
+      background: rgba(10,21,16,0.85);
+      color: rgba(242,232,213,0.7);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 4px;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.65rem;
+      padding: 10px 22px;
+      cursor: pointer;
+      letter-spacing: 2px;
+    }
+
+    .back-btn.active { display: block; }
+
+    /* Dica de rastreamento */
+    #scan-hint {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      font-style: italic;
+      font-size: 0.85rem;
+      color: rgba(242,232,213,0.6);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #scan-hint.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Tela inicial -->
+  <div id="intro">
+    <div class="logo">Bestiário<br/><span>BR</span></div>
+    <div class="criatura">✦ Saci ✦</div>
+    <img class="card-preview" src="saci-card.jpg" alt="Carta do Saci" />
+    <p class="instrucao">Aponte a câmera para a carta do Saci para invocar a criatura em Realidade Aumentada.</p>
+    <button class="start-btn" onclick="startAR()">◈ Ativar Câmera</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-title">Bestiário BR</div>
+    <div class="hud-creature">Saci</div>
+  </div>
+
+  <div id="scan-hint">Aponte para a carta do Saci…</div>
+
+  <!-- Cena A-Frame + MindAR -->
+  <div id="ar-scene">
+    <a-scene
+      mindar-image="imageTargetSrc: saci-target.mind; autoStart: false;"
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      id="ascene">
+
+      <a-assets>
+        <a-asset-item id="saciModel" src="Saci.glb"></a-asset-item>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- Âncora na imagem alvo -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <!-- Modelo posicionado 20cm acima da carta, rotacionado para ficar de pé -->
+        <a-entity
+          gltf-model="#saciModel"
+          position="0 0.2 0"
+          rotation="-90 0 0"
+          scale="0.3 0.3 0.3"
+          animation="property: rotation; from: -90 0 0; to: -90 360 0; dur: 8000; loop: true; easing: linear">
+        </a-entity>
+      </a-entity>
+
+    </a-scene>
+  </div>
+
+  <button class="back-btn" id="backBtn" onclick="stopAR()">✕ Voltar</button>
+
+  <script>
+    let arStarted = false;
+
+    function startAR() {
+      document.getElementById('intro').style.display = 'none';
+      document.getElementById('ar-scene').classList.add('active');
+      document.getElementById('hud').classList.add('active');
+      document.getElementById('scan-hint').classList.add('active');
+      document.getElementById('backBtn').classList.add('active');
+
+      if (!arStarted) {
+        const sceneEl = document.getElementById('ascene');
+        sceneEl.addEventListener('loaded', () => {
+          const arSystem = sceneEl.systems['mindar-image-system'];
+          if (arSystem) arSystem.start();
+        });
+        arStarted = true;
+      }
+    }
+
+    function stopAR() {
+      const sceneEl = document.getElementById('ascene');
+      const arSystem = sceneEl.systems['mindar-image-system'];
+      if (arSystem) arSystem.stop();
+
+      document.getElementById('ar-scene').classList.remove('active');
+      document.getElementById('hud').classList.remove('active');
+      document.getElementById('scan-hint').classList.remove('active');
+      document.getElementById('backBtn').classList.remove('active');
+      document.getElementById('intro').style.display = 'flex';
+      arStarted = false;
+    }
+
+    // Esconde dica quando criatura é detectada
+    document.addEventListener('DOMContentLoaded', () => {
+      const sceneEl = document.getElementById('ascene');
+      sceneEl.addEventListener('loaded', () => {
+        const target = document.querySelector('[mindar-image-target]');
+        if (target) {
+          target.addEventListener('targetFound', () => {
+            document.getElementById('scan-hint').style.opacity = '0';
+          });
+          target.addEventListener('targetLost', () => {
+            document.getElementById('scan-hint').style.opacity = '1';
+          });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
