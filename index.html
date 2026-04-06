@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -40,13 +41,11 @@
       inset: 0;
       background-image:
         radial-gradient(ellipse at 20% 50%, rgba(45,106,79,0.15) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
     }
 
-    /* ── HEADER ── */
     header {
       position: relative;
       z-index: 10;
@@ -62,7 +61,6 @@
       color: var(--ouro);
       opacity: 0.7;
       margin-bottom: 8px;
-      font-family: 'Crimson Pro', serif;
       font-style: italic;
     }
 
@@ -86,10 +84,8 @@
       font-style: italic;
       font-size: 0.95rem;
       color: rgba(242,232,213,0.55);
-      letter-spacing: 0.5px;
     }
 
-    /* ── VIEWER ── */
     .viewer-wrap {
       position: relative;
       z-index: 1;
@@ -97,16 +93,6 @@
       background: radial-gradient(ellipse at center, #1a3a2a 0%, #0a1510 100%);
       border-top: 1px solid rgba(201,168,76,0.2);
       border-bottom: 1px solid rgba(201,168,76,0.2);
-    }
-
-    .viewer-wrap::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(45,106,79,0.04) 40px, rgba(45,106,79,0.04) 41px),
-        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(45,106,79,0.04) 40px, rgba(45,106,79,0.04) 41px);
-      pointer-events: none;
     }
 
     model-viewer {
@@ -117,7 +103,6 @@
       --progress-bar-color: var(--ouro);
     }
 
-    /* ── LOADING ── */
     .loading-overlay {
       position: absolute;
       inset: 0;
@@ -175,7 +160,7 @@
       opacity: 0.8;
     }
 
-    /* ── BOTÃO AR ── */
+    /* Botão AR nativo do model-viewer (fallback) */
     .ar-btn {
       background: linear-gradient(135deg, var(--verde-vivo), var(--verde-mata));
       color: var(--ouro-claro);
@@ -192,13 +177,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      transition: all 0.2s ease;
       white-space: nowrap;
-    }
-
-    .ar-btn:active {
-      box-shadow: 0 0 30px rgba(82,183,136,0.5);
-      color: white;
     }
 
     [slot="ar-button"] {
@@ -209,7 +188,26 @@
       z-index: 4;
     }
 
-    /* ── INSTRUÇÕES ── */
+    /* Botão AR manual para Android */
+    .ar-manual-btn {
+      display: none; /* mostrado via JS se necessário */
+      margin: 20px auto 0;
+      background: linear-gradient(135deg, var(--verde-vivo), var(--verde-mata));
+      color: var(--ouro-claro);
+      border: 1px solid var(--ouro);
+      border-radius: 4px;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 16px 30px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(45,106,79,0.4);
+      text-decoration: none;
+      text-align: center;
+    }
+
     .instrucoes {
       position: relative;
       z-index: 1;
@@ -269,7 +267,6 @@
 
     .step-text strong { color: var(--verde-neon); font-style: italic; }
 
-    /* ── COMPATIBILIDADE ── */
     .compat {
       position: relative;
       z-index: 1;
@@ -296,7 +293,6 @@
     .dot-ok   { background: var(--verde-neon); box-shadow: 0 0 6px var(--verde-neon); }
     .dot-warn { background: var(--ouro); box-shadow: 0 0 6px var(--ouro); }
 
-    /* ── FOOTER ── */
     footer {
       position: relative;
       z-index: 1;
@@ -321,13 +317,13 @@
   </header>
 
   <div class="viewer-wrap">
-    <!-- ⚠️ Troque "modelo.glb" pelo nome real do seu arquivo -->
     <model-viewer
       id="viewer"
-      src="modelo.glb"
-      alt="Criatura do Bestiário BR em 3D"
+      src="On%C3%A7a.glb"
+      alt="Onça – Bestiário BR"
       ar
-      ar-modes="webxr scene-viewer quick-look"
+      ar-modes="scene-viewer webxr quick-look"
+      ar-scale="auto"
       camera-controls
       auto-rotate
       auto-rotate-delay="1000"
@@ -346,6 +342,9 @@
       <p>Invocando…</p>
     </div>
   </div>
+
+  <!-- Botão manual para Android caso o intent automático falhe -->
+  <a id="arManualBtn" class="ar-manual-btn" href="#">◈ Invocar em RA (Android)</a>
 
   <section class="instrucoes">
     <div class="section-title">Como invocar</div>
@@ -382,7 +381,9 @@
   <script>
     const viewer  = document.getElementById('viewer');
     const overlay = document.getElementById('loadingOverlay');
+    const manualBtn = document.getElementById('arManualBtn');
 
+    // Esconde loading quando modelo carrega
     viewer.addEventListener('load', () => {
       overlay.classList.add('hidden');
       setTimeout(() => overlay.style.display = 'none', 900);
@@ -392,6 +393,16 @@
       overlay.classList.add('hidden');
       setTimeout(() => overlay.style.display = 'none', 900);
     }, 8000);
+
+    // Monta o intent do Scene Viewer para Android
+    const isAndroid = /android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      const pageUrl = encodeURIComponent(window.location.href);
+      const glbUrl  = encodeURIComponent(window.location.origin + window.location.pathname.replace('index.html','') + 'On%C3%A7a.glb');
+      const intentUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${glbUrl}&mode=ar_preferred&title=On%C3%A7a#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${pageUrl};end;`;
+      manualBtn.href = intentUrl;
+      manualBtn.style.display = 'block';
+    }
   </script>
 </body>
 </html>
