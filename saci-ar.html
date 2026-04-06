@@ -48,23 +48,7 @@ AFRAME.registerComponent('gesture-handler', {
   }
 });
 </script>
-    } else if (e.touches.length === 1) {
-      // Rotação com um dedo
-      if (this.lastX !== null) {
-        const deltaX = e.touches[0].clientX - this.lastX;
-        this.rotationY += deltaX * 0.5;
-        this.el.object3D.rotation.y = THREE.MathUtils.degToRad(this.rotationY);
-      }
-      this.lastX = e.touches[0].clientX;
-    }
-  },
-  onTouchEnd: function() {
-    this.lastDist = null;
-    this.lastX = null;
-  }
-});
-</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600&display=swap" rel="stylesheet" />
 
   <style>
